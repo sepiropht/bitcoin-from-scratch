@@ -11,13 +11,26 @@ fn main() {
     let y: FieldElement = FieldElement::new(13, 19);
     let z: FieldElement = FieldElement::new(12, 19);
 
+    let o = FieldElement::new(3, 13);
+    let p = FieldElement::new(12, 13);
+    let q = FieldElement::new(10, 13);
+
+
+    let m = FieldElement::new(3, 13);
+    let n = FieldElement::new(1, 13);
+
+
+
     println!("should be true {}", a == a);
     println!("should be false {}", a == b);
     println!("a + b should be equal to c {}", a + b == c);
     println!("11 - 9 should be equal to 2 {}", i - j == k);
     println!("6 - 13 should be equal to 12 {}", x - y == z);
+    println!("3 * 12 should be equal to 10 {}", o * p == q);
+    println!("3 exp 3 should be equal to 1 {}", m.exp(3) == n);
+
 }
-use std::ops::{Add, Sub};
+use std::ops::{Add, Sub, Mul};
 
 #[derive(Debug, Copy, Clone)]
 struct FieldElement {
@@ -35,6 +48,13 @@ impl FieldElement {
 
     fn repr(self) -> String {
         format!("FieldElement_{}{}", self.prime, self.num)
+    }
+
+    fn exp(self, num: u32) -> FieldElement {
+        Self {
+           num: self.num.pow(num) % self.prime,
+           prime: self.prime
+        }
     }
 }
 
@@ -69,6 +89,22 @@ impl Sub for FieldElement {
         if num < 0 {
             num = 19 + num;
         }
+
+        Self {
+            num: num % self.prime,
+            prime: self.prime,
+        }
+    }
+}
+
+impl Mul for FieldElement {
+    type Output = Self;
+
+    fn mul(self, other: Self) -> Self {
+        if self.prime != other.prime {
+            panic!("Cannot mutliplicate two numbers in different field");
+        }
+        let num = self.num * other.num;
 
         Self {
             num: num % self.prime,
