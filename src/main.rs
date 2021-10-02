@@ -19,6 +19,9 @@ fn main() {
     let m = FieldElement::new(3, 13);
     let n = FieldElement::new(1, 13);
 
+    let u = FieldElement::new(7, 13);
+    let v = FieldElement::new(8, 13);
+
 
 
     println!("should be true {}", a == a);
@@ -28,18 +31,20 @@ fn main() {
     println!("6 - 13 should be equal to 12 {}", x - y == z);
     println!("3 * 12 should be equal to 10 {}", o * p == q);
     println!("3 exp 3 should be equal to 1 {}", m.exp(3) == n);
-
+    println!("10 / 12 should be equal to 3 {}", q / p == o);
+    println!("7 exp -3 should be equal to 8 {}", u.exp(-3) == v);
 }
-use std::ops::{Add, Sub, Mul};
+use std::ops::{Add, Sub, Mul, Div};
+use std::convert::TryInto;
 
 #[derive(Debug, Copy, Clone)]
 struct FieldElement {
-    num: i32,
-    prime: i32,
+    num: i64,
+    prime: i64,
 }
 
 impl FieldElement {
-    fn new(num: i32, prime: i32) -> FieldElement {
+    fn new(num: i64, prime: i64) -> FieldElement {
         if num >= prime || num < 0 {
             panic!("Num {} not in field range 0 to {}", num, prime - 1);
         }
@@ -50,9 +55,14 @@ impl FieldElement {
         format!("FieldElement_{}{}", self.prime, self.num)
     }
 
-    fn exp(self, num: u32) -> FieldElement {
+    fn exp(self, mut exponent: i64) -> FieldElement {
+        if exponent < 0 {
+            exponent = self.prime - 1  + (exponent % (self.prime - 1));
+        }
+      
+        let num = self.num.pow(exponent.try_into().unwrap()) % self.prime;
         Self {
-           num: self.num.pow(num) % self.prime,
+           num,
            prime: self.prime
         }
     }
@@ -87,7 +97,7 @@ impl Sub for FieldElement {
         }
         let mut num = self.num - other.num;
         if num < 0 {
-            num = 19 + num;
+            num = self.prime + num;
         }
 
         Self {
@@ -112,3 +122,24 @@ impl Mul for FieldElement {
         }
     }
 }
+
+impl Div for FieldElement {
+    type Output = Self;
+
+    fn div(self, other: Self) -> Self {
+        if self.prime != other.prime {
+            panic!("Cannot divise two numbers in different field");
+        }
+        if other.prime == 0 {
+            panic!("Cannot divise by 0");
+        }
+        let exp : u32 = (self.prime - 2).try_into().unwrap();
+        let num = self.num * other.num.pow(exp);
+
+        Self {
+            num: num % self.prime,
+            prime: self.prime,
+        }
+    }
+}
+
