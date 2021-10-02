@@ -1,7 +1,13 @@
 [package]
-name = "bitcoin-from-scratch"
+name = "bitcoin"
 version = "0.1.0"
 edition = "2018"
+
+[lib]
+# We could use any path here, but we are following the community convention
+# We could specify a library name using the `name` field. If unspecified,
+# cargo will default to `package.name`, which is what we want.
+path = "src/lib.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

@@ -3,5 +3,5 @@
 version = 3
 
 [[package]]
-name = "bitcoin-from-scratch"
+name = "bitcoin"
 version = "0.1.0"
