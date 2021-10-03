@@ -106,3 +106,26 @@ impl Div for FieldElement {
         }
     }
 }
+
+#[derive(Debug, Copy, Clone)]
+pub struct Point {
+    pub a: i64,
+    pub b: i64,
+    pub x: i64,
+    pub y: i64,
+}
+
+impl Point {
+    pub fn new(x: i64, y: i64, a: i64, b: i64) -> Self {
+        if y.pow(2) != x.pow(3) + a * x + b {
+            panic!("({}, {}) is not on the curve", x, y);
+        }
+        Self { a, b, x, y }
+    }
+}
+
+impl PartialEq for Point {
+    fn eq(&self, other: &Point) -> bool {
+        self.x == other.x && self.y == other.y && self.a == other.a && self.b == other.b
+    }
+}
