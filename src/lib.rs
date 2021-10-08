@@ -61,7 +61,7 @@ impl Sub for FieldElement {
         }
         let mut num = self.num - other.num;
         if num < 0 {
-            num = self.prime + num;
+            num += self.prime;
         }
 
         Self {
@@ -109,23 +109,85 @@ impl Div for FieldElement {
 
 #[derive(Debug, Copy, Clone)]
 pub struct Point {
+    pub x: Option<i64>,
+    pub y: Option<i64>,
     pub a: i64,
     pub b: i64,
-    pub x: i64,
-    pub y: i64,
 }
 
 impl Point {
-    pub fn new(x: i64, y: i64, a: i64, b: i64) -> Self {
-        if y.pow(2) != x.pow(3) + a * x + b {
-            panic!("({}, {}) is not on the curve", x, y);
+    pub fn new(a: i64, b: i64, x: Option<i64>, y: Option<i64>) -> Self {
+        match (x, y) {
+            (_, None) => Self { x, y: None, a, b },
+            (None, _) => Self { x: None, y, a, b },
+            _ => {
+                let y = y.unwrap();
+                let x = x.unwrap();
+                if y.pow(2) != x.pow(3) + a * x + b {
+                    panic!("({}, {}) is not on the curve", x, y);
+                }
+                Self {
+                    x: Some(x),
+                    y: Some(y),
+                    a,
+                    b,
+                }
+            }
         }
-        Self { a, b, x, y }
     }
 }
 
 impl PartialEq for Point {
     fn eq(&self, other: &Point) -> bool {
         self.x == other.x && self.y == other.y && self.a == other.a && self.b == other.b
+    }
+}
+
+impl Add for Point {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self {
+        if self.a != other.a || self.b != other.b {
+            panic!("Points are not on the same curve");
+        }
+        if self.x == None {
+            other
+        } else if other.x == None {
+            self
+        } else if self.x == other.x && self.y != other.y {
+            Self {
+                x: None,
+                y: None,
+                a: self.a,
+                b: self.b,
+            }
+        } else if self == other && self.y == Some(0) {
+            Self {
+                x: None,
+                y: None,
+                a: other.a,
+                b: other.b,
+            }
+        } else if self.x != other.x {
+            let s = (other.y.unwrap() - self.y.unwrap()) / (other.x.unwrap() - self.x.unwrap());
+            let x = s * s - self.x.unwrap() - other.x.unwrap();
+            let y = s * (self.x.unwrap() - x) - self.y.unwrap();
+            Self {
+                x: Some(x),
+                y: Some(y),
+                a: other.a,
+                b: other.b,
+            }
+        } else {
+            let s = (other.y.unwrap() - self.y.unwrap()) / (other.x.unwrap() - self.x.unwrap());
+            let x = s * s - 2 * self.x.unwrap();
+            let y = s * (self.x.unwrap() - x) - self.y.unwrap();
+            Self {
+                x: Some(x),
+                y: Some(y),
+                a: other.a,
+                b: other.b,
+            }
+        }
     }
 }
