@@ -181,7 +181,7 @@ impl Add for Point {
             }
         } else {
             let s = (other.y.unwrap() - self.y.unwrap()) / (other.x.unwrap() - self.x.unwrap());
-            let x = s * s - (self.x.unwrap() * self.x.unwrap());
+            let x = s * s - (self.x.unwrap() + self.x.unwrap());
             let y = s * (self.x.unwrap() - x) - self.y.unwrap();
             Self {
                 x: Some(x),
