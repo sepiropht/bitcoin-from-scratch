@@ -19,7 +19,7 @@ impl FieldElement {
         format!("FieldElement_{}{}", self.prime, self.num)
     }
 
-    pub fn exp(self, mut exponent: i64) -> FieldElement {
+    pub fn pow(self, mut exponent: i64) -> FieldElement {
         if exponent < 0 {
             exponent = self.prime - 1 + (exponent % (self.prime - 1));
         }
@@ -109,22 +109,23 @@ impl Div for FieldElement {
 
 #[derive(Debug, Copy, Clone)]
 pub struct Point {
-    pub x: Option<i64>,
-    pub y: Option<i64>,
-    pub a: i64,
-    pub b: i64,
+    pub x: Option<FieldElement>,
+    pub y: Option<FieldElement>,
+    pub a: FieldElement,
+    pub b: FieldElement,
 }
 
 impl Point {
-    pub fn new(a: i64, b: i64, x: Option<i64>, y: Option<i64>) -> Self {
+    pub fn new(a: FieldElement, b: FieldElement, x: Option<FieldElement>, y: Option<FieldElement>) -> Self {
         match (x, y) {
             (_, None) => Self { x, y: None, a, b },
             (None, _) => Self { x: None, y, a, b },
             _ => {
                 let y = y.unwrap();
                 let x = x.unwrap();
+
                 if y.pow(2) != x.pow(3) + a * x + b {
-                    panic!("({}, {}) is not on the curve", x, y);
+                    panic!("({:?}, {:?}) is not on the curve", x, y);
                 }
                 Self {
                     x: Some(x),
@@ -161,7 +162,7 @@ impl Add for Point {
                 a: self.a,
                 b: self.b,
             }
-        } else if self == other && self.y == Some(0) {
+        } else if self == other && self.y == None {
             Self {
                 x: None,
                 y: None,
@@ -180,7 +181,7 @@ impl Add for Point {
             }
         } else {
             let s = (other.y.unwrap() - self.y.unwrap()) / (other.x.unwrap() - self.x.unwrap());
-            let x = s * s - 2 * self.x.unwrap();
+            let x = s * s - (self.x.unwrap() * self.x.unwrap());
             let y = s * (self.x.unwrap() - x) - self.y.unwrap();
             Self {
                 x: Some(x),

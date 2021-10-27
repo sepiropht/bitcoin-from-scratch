@@ -1,3 +1,4 @@
+#[warn(non_snake_case)]
 use bitcoin::FieldElement;
 
 // compare 2 same fieldElement should be true
@@ -47,7 +48,7 @@ fn mul_field_element() {
 fn exp_field_element() {
     let m = FieldElement::new(3, 13);
     let n = FieldElement::new(1, 13);
-    assert_eq!(m.exp(3), n);
+    assert_eq!(m.pow(3), n);
 }
 
 // div 2 fieldElement
@@ -64,5 +65,5 @@ fn div_field_element() {
 fn exp_neg_field_element() {
     let u = FieldElement::new(7, 13);
     let v = FieldElement::new(8, 13);
-    assert_eq!(u.exp(-3), v);
+    assert_eq!(u.pow(-3), v);
 }
