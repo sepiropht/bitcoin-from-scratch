@@ -60,10 +60,10 @@ fn div_field_element() {
     assert_eq!(q / p, o);
 }
 
-// exp fieldElement with neative integer
+// exp fieldElement with negative integer
 #[test]
 fn exp_neg_field_element() {
-    let u = FieldElement::new(7, 13);
-    let v = FieldElement::new(8, 13);
+    let u = FieldElement::new(3, 13);
+    let v = FieldElement::new(29, 13);
     assert_eq!(u.pow(-3), v);
 }

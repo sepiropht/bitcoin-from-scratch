@@ -1,14 +1,31 @@
+use std::vec;
+
+use bitcoin::FieldElement;
 use bitcoin::Point;
 
-// raise exception when point is not on the curve
 #[test]
-#[should_panic(expected = "(-1, -2) is not on the curve")]
-fn not_in_curve() {
-    Point::new(5, 7, Some(-1), Some(-2));
-}
+fn rmul() {
+    let prime = 223;
+    let a = FieldElement::new(0, prime);
+    let b = FieldElement::new(7, prime);
 
-// same point should be equal
-#[test]
-fn eq() {
-    assert_eq!(Point::new(5, 7, Some(-1), Some(-1)), Point::new(5, 7, Some(-1), Some(-1)));
+    let multiplications = vec![
+        (2, 192, 105, 49, 71),
+        (2, 143, 98, 64, 168),
+        (2, 47, 71, 36, 111),
+        (4, 47, 71, 194, 51),
+        (8, 47, 71, 116, 55),
+    ];
+    for (s, x1_raw, y1_raw, x2_raw, y2_raw) in multiplications.iter() {
+        let s = *s as u128;
+        let x1 = FieldElement::new(*x1_raw, prime);
+        let y1 = FieldElement::new(*y1_raw, prime);
+        let p1 = Point::new(a, b, Some(x1), Some(y1));
+
+        let x2 = FieldElement::new(*x2_raw, prime);
+        let y2 = FieldElement::new(*y2_raw, prime);
+        let p2 = Point::new(a, b, Some(x2), Some(y2));
+
+        assert_eq!(p1 * s, p2);
+    }
 }

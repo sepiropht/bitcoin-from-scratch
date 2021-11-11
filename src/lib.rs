@@ -1,5 +1,8 @@
 use std::convert::TryInto;
 use std::ops::{Add, Div, Mul, Sub};
+extern crate num_bigint;
+use num_bigint::{BigInt, Sign};
+use num_traits::{pow, ToPrimitive};
 
 #[derive(Debug, Copy, Clone)]
 pub struct FieldElement {
@@ -19,10 +22,8 @@ impl FieldElement {
         format!("FieldElement_{}{}", self.prime, self.num)
     }
 
-    pub fn pow(self, mut exponent: i64) -> FieldElement {
-        if exponent < 0 {
-            exponent = self.prime - 1 + (exponent % (self.prime - 1));
-        }
+    pub fn pow(self, exponent: i64) -> FieldElement {
+        let exponent = exponent % (self.prime - 1);
 
         let num = self.num.pow(exponent.try_into().unwrap()) % self.prime;
         Self {
@@ -87,6 +88,22 @@ impl Mul for FieldElement {
     }
 }
 
+impl Mul<i64> for FieldElement {
+    type Output = Self;
+
+    fn mul(self, scalar: i64) -> Self {
+        let mut product = Self {
+            num: 0,
+            prime: self.prime,
+        };
+        for _ in 0..scalar {
+            product = product + self;
+        }
+
+        product
+    }
+}
+
 impl Div for FieldElement {
     type Output = Self;
 
@@ -97,11 +114,13 @@ impl Div for FieldElement {
         if other.prime == 0 {
             panic!("Cannot divise by 0");
         }
-        let exp: u32 = (self.prime - 2).try_into().unwrap();
-        let num = self.num * other.num.pow(exp);
 
+        let x = BigInt::new(Sign::Plus, vec![other.num.try_into().unwrap()]);
+        let res =
+            (self.num * (pow(x, (self.prime - 2).try_into().unwrap()) % self.prime)) % self.prime;
+        let res = truncate_biguint_to_u32(&res);
         Self {
-            num: num % self.prime,
+            num: res.try_into().unwrap(),
             prime: self.prime,
         }
     }
@@ -116,7 +135,12 @@ pub struct Point {
 }
 
 impl Point {
-    pub fn new(a: FieldElement, b: FieldElement, x: Option<FieldElement>, y: Option<FieldElement>) -> Self {
+    pub fn new(
+        a: FieldElement,
+        b: FieldElement,
+        x: Option<FieldElement>,
+        y: Option<FieldElement>,
+    ) -> Self {
         match (x, y) {
             (_, None) => Self { x, y: None, a, b },
             (None, _) => Self { x: None, y, a, b },
@@ -152,43 +176,73 @@ impl Add for Point {
             panic!("Points are not on the same curve");
         }
         if self.x == None {
-            other
-        } else if other.x == None {
-            self
-        } else if self.x == other.x && self.y != other.y {
-            Self {
+            return other;
+        }
+        if other.x == None {
+            return self;
+        }
+
+        if self.x == other.x && self.y != other.y {
+            return Self {
                 x: None,
                 y: None,
                 a: self.a,
                 b: self.b,
-            }
-        } else if self == other && self.y == None {
-            Self {
+            };
+        }
+
+        if self == other && self.y == None {
+            return Self {
                 x: None,
                 y: None,
                 a: other.a,
                 b: other.b,
-            }
-        } else if self.x != other.x {
-            let s = (other.y.unwrap() - self.y.unwrap()) / (other.x.unwrap() - self.x.unwrap());
-            let x = s * s - self.x.unwrap() - other.x.unwrap();
-            let y = s * (self.x.unwrap() - x) - self.y.unwrap();
-            Self {
-                x: Some(x),
-                y: Some(y),
-                a: other.a,
-                b: other.b,
-            }
-        } else {
-            let s = (other.y.unwrap() - self.y.unwrap()) / (other.x.unwrap() - self.x.unwrap());
-            let x = s * s - (self.x.unwrap() + self.x.unwrap());
-            let y = s * (self.x.unwrap() - x) - self.y.unwrap();
-            Self {
-                x: Some(x),
-                y: Some(y),
-                a: other.a,
-                b: other.b,
-            }
+            };
         }
+
+        if self.x != other.x {
+            let s = (other.y.unwrap() - self.y.unwrap()) / (other.x.unwrap() - self.x.unwrap());
+            let x = s.pow(2) - self.x.unwrap() - other.x.unwrap();
+            let y = s * (self.x.unwrap() - x) - self.y.unwrap();
+            return Self {
+                x: Some(x),
+                y: Some(y),
+                a: other.a,
+                b: other.b,
+            };
+        }
+        if self == other && self.y == Some(self.x.unwrap() * 0) {
+            return Self {
+                x: None,
+                y: None,
+                a: self.a,
+                b: self.b,
+            };
+        }
+        let s = (self.x.unwrap().pow(2) * 3 + self.a) / (self.y.unwrap() * 2);
+        let x = s.pow(2) - self.x.unwrap() * 2;
+        let y = s * (self.x.unwrap() - x) - self.y.unwrap();
+        return Self {
+            x: Some(x),
+            y: Some(y),
+            a: other.a,
+            b: other.b,
+        };
     }
+}
+impl Mul<u128> for Point {
+    type Output = Self;
+    fn mul(self, scalar: u128) -> Self {
+        let mut product = Point::new(self.a, self.b, None, None);
+        for _ in 0..scalar {
+            product = product + self;
+        }
+        product
+    }
+}
+
+fn truncate_biguint_to_u32(a: &BigInt) -> u32 {
+    use std::u32;
+    let mask = BigInt::from(u32::MAX);
+    (a & mask).to_u32().unwrap()
 }
